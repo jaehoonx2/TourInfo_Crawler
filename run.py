@@ -9,6 +9,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+import time
+
 # 사전에 필요한 정보를 로드 => 디비 혹은 쉘, 베치 파일에서 인자로 받아서 세팅
 main_url = 'https://tour.interpark.com/'
 keyword = '로마'
@@ -41,6 +43,23 @@ except Exception as e:
 # 요소를 찾을 특정 시간 동안 DOM의 풀링을 지시. 예를 들어 10초 이내라도
 # 발견되면 바로 진행
 driver.implicitly_wait( 10 )
-# 절대적 대기 => time.sleep(10) -> 클라우드 페어(DDoS 방어 솔루션)
 # 더보기 눌러서 => 게시판 진입
 driver.find_element_by_css_selector('.oTravelBox>.boxList>.moreBtnWrap>.moreBtn').click()
+# 게시판에서 데이터를 가져올 때
+# 데이터가 많으면 세션(혹시 로그인을 해서 접근되는 사이트일 경우) 관리
+# 특정 단위로 로그아웃 로그인 계속 시도
+# 특정 게시물이 사라질 경우 => 팝업 발생 (없는 게시물...) => 팝업 처리 검토
+# 게시판 스캔 시 => 임계점을 모름!!(어디가 도대체 끝인가)
+# 게시판을 스캔 => 메타 정보 획득 => loop 를 돌려서 일괄적으로 방문 접근 처리
+
+# searchModule.SetCategoryList(1, '') 스크립트 실행
+# 24는 임시값, 게시물을 넘어갔을 때 현상을 확인하기 위함
+for page in range(1, 24) :
+    try :
+        # 자바스크립트 구동하기
+        driver.execute_script("searchModule.SetCategoryList(%s, '')" % page)
+        # 절대적 대기 => time.sleep(10) -> 클라우드 페어(DDoS 방어 솔루션)
+        time.sleep(2)
+        print("%s 페이지 이동" % page)
+    except Exception as e1 :
+        print('오류', e1)
