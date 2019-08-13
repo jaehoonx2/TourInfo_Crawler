@@ -10,14 +10,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 import time
+from Tour import TourInfo
 
 # 사전에 필요한 정보를 로드 => 디비 혹은 쉘, 베치 파일에서 인자로 받아서 세팅
 main_url = 'https://tour.interpark.com/'
 keyword = '로마'
+# 상품 정보를 담는 리스트 (TourInfo 리스트)
+tour_list = []
 
 # 드라이버 로드
-driver = wd.Chrome(executable_path='chromedriver.exe')      # Windows
-#driver = wd.Chrome(executable_path='./chromedriver')       # MAC
+driver = wd.Chrome(executable_path='chromedriver.exe')    # Windows
+#driver = wd.Chrome(executable_path='./chromedriver')      # MAC
 # 차후 => 옵션 부여하여 (프록시, 에이전트 조작, 이미지를 배제)
 # 크롤링을 오래 돌리면 => 임시파일들이 쌓인다!! => temp 파일 삭제
 
@@ -54,12 +57,44 @@ driver.find_element_by_css_selector('.oTravelBox>.boxList>.moreBtnWrap>.moreBtn'
 
 # searchModule.SetCategoryList(1, '') 스크립트 실행
 # 24는 임시값, 게시물을 넘어갔을 때 현상을 확인하기 위함
-for page in range(1, 24) :
+for page in range(1, 2):#24) :
     try :
         # 자바스크립트 구동하기
         driver.execute_script("searchModule.SetCategoryList(%s, '')" % page)
         # 절대적 대기 => time.sleep(10) -> 클라우드 페어(DDoS 방어 솔루션)
         time.sleep(2)
         print("%s 페이지 이동" % page)
+        ##################################################################
+        # 여러 사이트에서 정보를 수집할 경우 곧통 정보 정의 단계 필요
+        # 상품명, 코멘트, 기간1, 기간2, 가격, 평점, 썸네일, 링크(상품상세정보)
+        boxItems = driver.find_elements_by_css_selector('.oTravelBox>.boxList>li')
+        # 상품 하나 하나 접근
+        for li in boxItems :
+            # 이미지를 링크값을 사용할 것인가?
+            # 직접 다운로드해서 우리 서버에 업로드(FTP)할 것인가?
+
+            print('썸네일', li.find_element_by_css_selector('img').get_attribute('src'))
+            print('링크', li.find_element_by_css_selector('a').get_attribute('onclick')) # 누르는 게 아닌 스캔 과정이기 때문
+            print('상품명', li.find_element_by_css_selector('h5.proTit').text)
+            print('코멘트', li.find_element_by_css_selector('.proSub').text)
+            print('가격', li.find_element_by_css_selector('.proPrice').text)
+            area = ''
+            for info in li.find_elements_by_css_selector('.info-row .proInfo') :
+                print( info.text )
+            print('='*100)
+            # 데이터 모음
+            obj = TourInfo(
+                li.find_element_by_css_selector('h5.proTit').text,
+                li.find_element_by_css_selector('.proPrice').text,
+                li.find_elements_by_css_selector('.info-row .proInfo')[1].text,
+                li.find_element_by_css_selector('a').get_attribute('onclick'),
+                li.find_element_by_css_selector('img').get_attribute('src')
+            )
+            tour_list.append( obj )
     except Exception as e1 :
         print('오류', e1)
+
+print( tour_list, len(tour_list) )
+
+# 다음 시나리오
+# 수집한 정보 개수를 루프 => 페이지 방문 => 콘텐츠 획득(상품상세정보)//beautifulSoup => DB
