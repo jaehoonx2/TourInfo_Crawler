@@ -2,8 +2,9 @@
 # 로그인 시 PC 웹 사이트에서 처리가 어려울 경우 => 모바일 로그인 진입
 # 모듈 가져오기
 # pip/pip3 install selenium
+# pip/pip3 install bs4
 from selenium import webdriver as wd
-
+from bs4 import BeautifulSoup as bs
 from selenium.webdriver.common.by import By
 # 명시적 대기를 위해
 from selenium.webdriver.support.ui import WebDriverWait
@@ -115,9 +116,15 @@ for tour in tour_list:
         # 상세페이지 이동 : URL 값이 완성된 형태인지 확인(http~)
         driver.get( detail_url )
         time.sleep(2)
+        
+        # 현재 페이지를 beautifulsoup 의 DOM으로 구성
+        soup = bs(driver.page_source, 'html.parser')
+        # 현제 상세 정보 페이지에서 스케줄 정보 획득
+        data = soup.select('.schedule-all')
+        print( type(data), len(data) )
 
 # 종료
 driver.close()
 driver.quit()
 import sys
-sys.exit()
+sys.exit
