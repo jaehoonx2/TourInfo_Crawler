@@ -83,10 +83,12 @@ for page in range(1, 2):#24) :
                 print( info.text )
             print('='*100)
             # 데이터 모음
+            # li.find_elements_by_css_selector('.info-row .proInfo')[1].text
+            # 데이터가 부족하거나 없을 수도 있으므로 직접 인덱스로 표현은 위험성이 있음
             obj = TourInfo(
                 li.find_element_by_css_selector('h5.proTit').text,
                 li.find_element_by_css_selector('.proPrice').text,
-                li.find_elements_by_css_selector('.info-row .proInfo')[1].text,
+                li.find_elements_by_css_selector('.info-row .proInfo')[1].text, # 주의
                 li.find_element_by_css_selector('a').get_attribute('onclick'),
                 li.find_element_by_css_selector('img').get_attribute('src')
             )
@@ -98,3 +100,24 @@ print( tour_list, len(tour_list) )
 
 # 다음 시나리오
 # 수집한 정보 개수를 루프 => 페이지 방문 => 콘텐츠 획득(상품상세정보)//beautifulSoup => DB
+for tour in tour_list:
+    # tour => TourInfo
+    print( type(tour) )
+    # 링크 데이터에서 실데이터 획득
+    # 분해
+    arr = tour.link.split(',')
+    
+    if arr: # arr 이 존재하고
+        # 대체
+        link = arr[0].replace('searchModule.OnClickDetail(','')
+        # 슬라이싱 => 앞에 ', 뒤에 ' 제거
+        detail_url = link[1:-1]
+        # 상세페이지 이동 : URL 값이 완성된 형태인지 확인(http~)
+        driver.get( detail_url )
+        time.sleep(2)
+
+# 종료
+driver.close()
+driver.quit()
+import sys
+sys.exit()
