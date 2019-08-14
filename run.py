@@ -3,13 +3,14 @@
 # 모듈 가져오기
 # pip/pip3 install selenium
 # pip/pip3 install bs4
+# pip/pip3 install pymysql
 from selenium import webdriver as wd
 from bs4 import BeautifulSoup as bs
 from selenium.webdriver.common.by import By
 # 명시적 대기를 위해
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
+import pymysql as my
 import time
 from Tour import TourInfo
 
@@ -20,8 +21,8 @@ keyword = '로마'
 tour_list = []
 
 # 드라이버 로드
-driver = wd.Chrome(executable_path='chromedriver.exe')    # Windows
-#driver = wd.Chrome(executable_path='./chromedriver')      # MAC
+#driver = wd.Chrome(executable_path='chromedriver.exe')   # Windows
+driver = wd.Chrome(executable_path='./chromedriver')      # MAC
 # 차후 => 옵션 부여하여 (프록시, 에이전트 조작, 이미지를 배제)
 # 크롤링을 오래 돌리면 => 임시파일들이 쌓인다!! => temp 파일 삭제
 
@@ -120,8 +121,9 @@ for tour in tour_list:
         # 현재 페이지를 beautifulsoup 의 DOM으로 구성
         soup = bs(driver.page_source, 'html.parser')
         # 현제 상세 정보 페이지에서 스케줄 정보 획득
-        data = soup.select('.schedule-all')
+        data = soup.select('.tip-cover')
         print( type(data), len(data) )
+        # 디비 입력
 
 # 종료
 driver.close()
