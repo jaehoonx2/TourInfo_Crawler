@@ -7,22 +7,25 @@
 from selenium import webdriver as wd
 from bs4 import BeautifulSoup as bs
 from selenium.webdriver.common.by import By
-# 명시적 대기를 위해
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait     # 명시적 대기를 위해
 from selenium.webdriver.support import expected_conditions as EC
-import pymysql as my
-import time
+from DbMgr import DBHelper as Db
 from Tour import TourInfo
+import time                                                 # 절대적 대기를 위해
+import sys                                                  # 프로그램 종료를 위해
+import re                                                   # html 콘텐츠 전처리를 위해
 
 # 사전에 필요한 정보를 로드 => 디비 혹은 쉘, 베치 파일에서 인자로 받아서 세팅
-main_url = 'https://tour.interpark.com/'
-keyword = '로마'
+db          = Db()
+main_url    = 'https://tour.interpark.com/'
+keyword     = '로마'
 # 상품 정보를 담는 리스트 (TourInfo 리스트)
 tour_list = []
 
 # 드라이버 로드
-#driver = wd.Chrome(executable_path='chromedriver.exe')   # Windows
-driver = wd.Chrome(executable_path='./chromedriver')      # MAC
+#driver = wd.Chrome(executable_path='chromedriver.exe')     # Windows
+driver = wd.Chrome(executable_path='./chromedriver')        # MAC
+# driver   = wd.PhantomJS(executable_path='./phantomjs')    # 고스트용
 # 차후 => 옵션 부여하여 (프록시, 에이전트 조작, 이미지를 배제)
 # 크롤링을 오래 돌리면 => 임시파일들이 쌓인다!! => temp 파일 삭제
 
@@ -50,6 +53,7 @@ except Exception as e:
 driver.implicitly_wait( 10 )
 # 더보기 눌러서 => 게시판 진입
 driver.find_element_by_css_selector('.oTravelBox>.boxList>.moreBtnWrap>.moreBtn').click()
+
 # 게시판에서 데이터를 가져올 때
 # 데이터가 많으면 세션(혹시 로그인을 해서 접근되는 사이트일 경우) 관리
 # 특정 단위로 로그아웃 로그인 계속 시도
@@ -74,15 +78,14 @@ for page in range(1, 2):#24) :
         for li in boxItems :
             # 이미지를 링크값을 사용할 것인가?
             # 직접 다운로드해서 우리 서버에 업로드(FTP)할 것인가?
-
-            print('썸네일', li.find_element_by_css_selector('img').get_attribute('src'))
-            print('링크', li.find_element_by_css_selector('a').get_attribute('onclick')) # 누르는 게 아닌 스캔 과정이기 때문
-            print('상품명', li.find_element_by_css_selector('h5.proTit').text)
-            print('코멘트', li.find_element_by_css_selector('.proSub').text)
-            print('가격', li.find_element_by_css_selector('.proPrice').text)
+            print( '썸네임', li.find_element_by_css_selector('img').get_attribute('src') )
+            print( '링크', li.find_element_by_css_selector('a').get_attribute('onclick') )
+            print( '상품명', li.find_element_by_css_selector('h5.proTit').text )
+            print( '코멘트', li.find_element_by_css_selector('.proSub').text )
+            print( '가격',   li.find_element_by_css_selector('.proPrice').text )
             area = ''
-            for info in li.find_elements_by_css_selector('.info-row .proInfo') :
-                print( info.text )
+            for info in li.find_elements_by_css_selector('.info-row .proInfo'):
+                print(  info.text )
             print('='*100)
             # 데이터 모음
             # li.find_elements_by_css_selector('.info-row .proInfo')[1].text
@@ -90,7 +93,7 @@ for page in range(1, 2):#24) :
             obj = TourInfo(
                 li.find_element_by_css_selector('h5.proTit').text,
                 li.find_element_by_css_selector('.proPrice').text,
-                li.find_elements_by_css_selector('.info-row .proInfo')[1].text, # 주의
+                li.find_elements_by_css_selector('.info-row .proInfo')[1].text,
                 li.find_element_by_css_selector('a').get_attribute('onclick'),
                 li.find_element_by_css_selector('img').get_attribute('src')
             )
@@ -122,11 +125,28 @@ for tour in tour_list:
         soup = bs(driver.page_source, 'html.parser')
         # 현제 상세 정보 페이지에서 스케줄 정보 획득
         data = soup.select('.tip-cover')
-        print( type(data), len(data) )
-        # 디비 입력
+        #print( type(data), len(data), type(data[0].contents)  )
+        # 디비 입력 => pip install pymysql
+        # 데이터 sum
+        content_final = ''
+        for c in data[0].contents:
+            content_final += str(c)
+        
+        # html 콘텐츠 데이터 전처리 (디비에 입력 가능토록)
+        content_final   = re.sub("'", '"', content_final)
+        content_final   = re.sub(re.compile(r'\r\n|\r|\n|\n\r+'), '', content_final)
 
-# 종료
+        print( content_final )
+        # 콘텐츠 내용에 따라 전처리 => data[0].contents
+        db.db_insertCrawlingData(
+            tour.title,
+            tour.price[:-1],
+            tour.area.replace('출발 가능 기간 : ',''),
+            content_final,
+            keyword
+        )
+
+# 프로그램 종료
 driver.close()
 driver.quit()
-import sys
 sys.exit
